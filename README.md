@@ -2,6 +2,10 @@
 
 A Bash script that automatically checks for and installs the latest version of Cursor IDE on Linux systems.
 
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
 ## Features
 
 - Automatically detects existing Cursor installations

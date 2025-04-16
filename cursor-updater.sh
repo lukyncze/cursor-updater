@@ -5,6 +5,10 @@
 # This script automatically checks for and installs the latest version
 # of Cursor IDE on Linux Ubuntu systems. It downloads the AppImage to
 # the user's applications directory and sets up desktop integration.
+#
+# License: MIT
+# Copyright (c) 2025 Lukáš Sukeník
+# See LICENSE file for details
 # ----------------------------------------------------------------
 
 # Exit on any error
