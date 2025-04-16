@@ -21,7 +21,7 @@ A Bash script that automatically checks for and installs the latest version of C
 1. Clone this repository or download the script:
 
    ```bash
-   git clone https://github.com/yourusername/cursor-updater.git
+   git clone https://github.com/lukyncze/cursor-updater
    ```
 
 2. Make the script executable:
