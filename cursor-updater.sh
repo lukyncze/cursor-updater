@@ -16,9 +16,9 @@ set -e
 
 # Configuration variables
 USERNAME=$(whoami)
-APP_DIR="/home/$USERNAME/Documents/apps"
-DESKTOP_FILE="/home/$USERNAME/.local/share/applications/cursor.desktop"
-ICON_PATH="/home/$USERNAME/Pictures/svg-icons/cursor.svg"
+APP_DIR="/opt/cursor"
+DESKTOP_FILE="/usr/share/applications/cursor.desktop"
+ICON_PATH="/opt/cursor/cursor.svg"
 API_URL="https://www.cursor.com/api/download?platform=linux-x64&releaseTrack=stable"
 ICON_URL="https://www.cursor.com/brand/cursor.png"
 USER_AGENT="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
