@@ -15,128 +15,186 @@
 set -e
 
 # Configuration variables
-APP_DIR="/opt/cursor"
-ICON_PATH="/opt/cursor/cursor.svg"
-DESKTOP_FILE="/usr/share/applications/cursor.desktop"
-API_URL="https://www.cursor.com/api/download?platform=linux-x64&releaseTrack=stable"
-ICON_REGISTRY_URL="https://registry.npmmirror.com/@lobehub/icons-static-svg/latest/files/icons/cursor.svg"
-USER_AGENT="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+readonly APP_DIR="/opt/cursor"
+readonly ICON_PATH="/opt/cursor/cursor.svg"
+readonly DESKTOP_FILE="/usr/share/applications/cursor.desktop"
+readonly API_URL="https://www.cursor.com/api/download?platform=linux-x64&releaseTrack=stable"
+readonly ICON_REGISTRY_URL="https://registry.npmmirror.com/@lobehub/icons-static-svg/latest/files/icons/cursor.svg"
+readonly USER_AGENT="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
-# Function to display error messages and exit
+# Display functions
 error_exit() {
     echo -e "\e[31mError: $1\e[0m" >&2
     exit 1
 }
 
-# Function to display success messages
 success_message() {
-    echo -e "\e[32m$1\e[0m"
+    echo -e "\e[32m$1\e[0m" >&2
 }
 
-# Function to display information messages
 info_message() {
-    echo -e "\e[34m$1\e[0m"
+    echo -e "\e[34m$1\e[0m" >&2
 }
 
-# Function to check if a command is available
+# Utility functions
 check_command() {
     command -v "$1" &> /dev/null || error_exit "$1 is required but not installed. Please install it with: sudo apt install $1"
 }
 
-# Check for required commands
-check_command curl
-check_command jq
+ensure_directory() {
+    local dir="$1"
+    sudo mkdir -p "$dir" || error_exit "Failed to create directory $dir"
+}
 
-# Create application directory if it doesn't exist
-sudo mkdir -p "$APP_DIR" || error_exit "Failed to create directory $APP_DIR"
-
-# Get current Cursor version (if installed)
-current_version=""
-current_appimage=$(find "$APP_DIR" -name "Cursor-*-x86_64.AppImage" | sort -V | tail -n 1)
-if [ -n "$current_appimage" ]; then
-    current_version=$(basename "$current_appimage" | sed -E 's/Cursor-(.+)-x86_64.AppImage/\1/')
-    info_message "Found existing Cursor installation (version $current_version)"
-else
-    info_message "No existing Cursor installation found"
-fi
-
-# Fetch information about the latest version
-info_message "Checking for latest Cursor version..."
-api_response=$(curl -s -A "$USER_AGENT" "$API_URL")
-
-# Extract version and download URL using jq
-if ! latest_version=$(echo "$api_response" | jq -r '.version'); then
-    error_exit "Failed to parse API response"
-fi
-
-if ! download_url=$(echo "$api_response" | jq -r '.downloadUrl'); then
-    error_exit "Failed to get download URL from API response"
-fi
-
-# Check if we need to update
-if [ "$current_version" = "$latest_version" ]; then
-    success_message "Cursor is already up to date (version $current_version)"
-    exit 0
-fi
-
-info_message "New version available: $latest_version"
-info_message "Downloading Cursor $latest_version..."
-
-# Download the latest version
-new_appimage="$APP_DIR/Cursor-$latest_version-x86_64.AppImage"
-if ! sudo curl -L -A "$USER_AGENT" -o "$new_appimage" "$download_url"; then
-    error_exit "Failed to download Cursor"
-fi
-
-# Make the AppImage executable
-sudo chmod +x "$new_appimage" || error_exit "Failed to make AppImage executable"
-
-# Remove the old version if it exists
-if [ -n "$current_appimage" ] && [ -f "$current_appimage" ]; then
-    info_message "Removing old version..."
-    sudo rm "$current_appimage" || error_exit "Failed to remove old version"
-fi
-
-success_message "Cursor $latest_version has been successfully downloaded to $new_appimage"
-
-# Check for icon and install if needed
-if [ ! -f "$ICON_PATH" ]; then    
-    # Create icon directory if it doesn't exist
-    sudo mkdir -p "$(dirname "$ICON_PATH")" || error_exit "Failed to create icon directory"
+# Core business logic functions
+get_current_version() {
+    local current_appimage
+    current_appimage=$(find "$APP_DIR" -name "Cursor-*-x86_64.AppImage" | sort -V | tail -n 1)
     
-    # Download icon from npm registry (automatically resolves to latest version)
-    info_message "Downloading Cursor icon from registry..."
+    if [ -n "$current_appimage" ]; then
+        basename "$current_appimage" | sed -E 's/Cursor-(.+)-x86_64.AppImage/\1/'
+    else
+        echo ""
+    fi
+}
 
+get_latest_version_info() {
+    info_message "Checking for latest Cursor version..."
+    local api_response
+    api_response=$(curl -s -A "$USER_AGENT" "$API_URL") || error_exit "Failed to fetch version information"
+    
+    local latest_version download_url
+    latest_version=$(echo "$api_response" | jq -r '.version') || error_exit "Failed to parse version from API response"
+    download_url=$(echo "$api_response" | jq -r '.downloadUrl') || error_exit "Failed to get download URL from API response"
+    
+    echo "$latest_version|$download_url"
+}
+
+download_cursor() {
+    local cursor_version="$1"
+    local download_url="$2"
+    local target_file="$APP_DIR/Cursor-$cursor_version-x86_64.AppImage"
+    
+    info_message "Downloading Cursor $cursor_version..."
+    sudo curl -L -A "$USER_AGENT" -o "$target_file" "$download_url" || error_exit "Failed to download Cursor"
+    sudo chmod +x "$target_file" || error_exit "Failed to make AppImage executable"
+    
+    echo "$target_file"
+}
+
+cleanup_old_version() {
+    local old_cursor_version="$1"
+    
+    if [ -n "$old_cursor_version" ]; then
+        local old_appimage="$APP_DIR/Cursor-$old_cursor_version-x86_64.AppImage"
+        if [ -f "$old_appimage" ]; then
+            info_message "Removing old version..."
+            sudo rm "$old_appimage" || error_exit "Failed to remove old version"
+        fi
+    fi
+}
+
+install_icon() {
+    if [ -f "$ICON_PATH" ]; then
+        return 0
+    fi
+    
+    ensure_directory "$(dirname "$ICON_PATH")"
+    info_message "Downloading Cursor icon from registry..."
+    
     if sudo curl -L --silent --fail -A "$USER_AGENT" -o "$ICON_PATH" "$ICON_REGISTRY_URL"; then
         success_message "Icon downloaded successfully"
     else
         info_message "Icon download failed, application will use system default icon"
     fi
-fi
+}
 
-# Create desktop entry
-info_message "Creating desktop entry..."
-cat << EOF | sudo tee "$DESKTOP_FILE" > /dev/null
+create_desktop_entry() {
+    local cursor_appimage_path="$1"
+    local cursor_version="$2"
+    
+    info_message "Creating desktop entry..."
+    cat << EOF | sudo tee "$DESKTOP_FILE" > /dev/null
 [Desktop Entry]
 Name=Cursor
-Exec="$new_appimage" %F
+Exec="$cursor_appimage_path" %F
 Icon=$ICON_PATH
 Terminal=false
 Type=Application
 StartupWMClass=Cursor
-X-AppImage-Version=$latest_version
+X-AppImage-Version=$cursor_version
 Comment=AI-first code editor
 Categories=Development;IDE;TextEditor;
 Keywords=cursor;editor;ide;code;programming;
 EOF
 
-# Update desktop database
-if command -v update-desktop-database &> /dev/null; then
-    sudo update-desktop-database || true
-fi
+    if command -v update-desktop-database &> /dev/null; then
+        sudo update-desktop-database || true
+    fi
+}
 
-success_message "Cursor IDE $latest_version installation complete!"
-success_message "You can now launch Cursor from your application menu or run:"
-info_message "  $new_appimage"
+check_if_update_needed() {
+    local current_version="$1"
+    local latest_version="$2"
+    
+    if [ "$current_version" = "$latest_version" ]; then
+        success_message "Cursor is already up to date (version $current_version)"
+        exit 0
+    fi
+}
 
-exit 0
+display_installation_info() {
+    local current_version="$1"
+    
+    if [ -n "$current_version" ]; then
+        info_message "Found existing Cursor installation (version $current_version)"
+    else
+        info_message "No existing Cursor installation found"
+    fi
+}
+
+display_completion_message() {
+    local version="$1"
+    local appimage_path="$2"
+    
+    success_message "Cursor IDE $version installation complete!"
+    success_message "You can now launch Cursor from your application menu or run:"
+    info_message "  $appimage_path"
+}
+
+main() {
+    # Check prerequisites
+    check_command curl
+    check_command jq
+    ensure_directory "$APP_DIR"
+    
+    # Get current and latest version information
+    local current_version
+    current_version=$(get_current_version)
+    display_installation_info "$current_version"
+    
+    local version_info latest_version download_url
+    version_info=$(get_latest_version_info)
+    latest_version="${version_info%|*}"
+    download_url="${version_info#*|}"
+    
+    # Check if update is needed
+    check_if_update_needed "$current_version" "$latest_version"
+    info_message "New version available: $latest_version"
+    
+    # Download and install new version
+    local new_appimage
+    new_appimage=$(download_cursor "$latest_version" "$download_url")
+    cleanup_old_version "$current_version"
+    success_message "Cursor $latest_version has been successfully downloaded to $new_appimage"
+    
+    # Setup desktop integration
+    install_icon
+    create_desktop_entry "$new_appimage" "$latest_version"
+    
+    # Display completion message
+    display_completion_message "$latest_version" "$new_appimage"
+}
+
+# Run the main function
+main "$@"
