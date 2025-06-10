@@ -53,8 +53,6 @@ check_prerequisites() {
     ensure_directory "$APP_DIR"
 }
 
-
-
 download_and_install() {
     local latest_version="$1"
     local download_url="$2"
