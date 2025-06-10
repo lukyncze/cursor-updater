@@ -22,6 +22,40 @@ readonly API_URL="https://www.cursor.com/api/download?platform=linux-x64&release
 readonly ICON_REGISTRY_URL="https://registry.npmmirror.com/@lobehub/icons-static-svg/latest/files/icons/cursor.svg"
 readonly USER_AGENT="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
+main() {
+    # Check prerequisites
+    check_command curl
+    check_command jq
+    ensure_directory "$APP_DIR"
+    
+    # Get current and latest version information
+    local current_version
+    current_version=$(get_current_version)
+    display_installation_info "$current_version"
+    
+    local version_info latest_version download_url
+    version_info=$(get_latest_version_info)
+    latest_version="${version_info%|*}"
+    download_url="${version_info#*|}"
+    
+    # Check if update is needed
+    check_if_update_needed "$current_version" "$latest_version"
+    info_message "New version available: $latest_version"
+    
+    # Download and install new version
+    local new_appimage
+    new_appimage=$(download_cursor "$latest_version" "$download_url")
+    cleanup_old_version "$current_version"
+    success_message "Cursor $latest_version has been successfully downloaded to $new_appimage"
+    
+    # Setup desktop integration
+    install_icon
+    create_desktop_entry "$new_appimage" "$latest_version"
+    
+    # Display completion message
+    display_completion_message "$latest_version" "$new_appimage"
+}
+
 # Display functions
 error_exit() {
     echo -e "\e[31mError: $1\e[0m" >&2
@@ -160,40 +194,6 @@ display_completion_message() {
     success_message "Cursor IDE $version installation complete!"
     success_message "You can now launch Cursor from your application menu or run:"
     info_message "  $appimage_path"
-}
-
-main() {
-    # Check prerequisites
-    check_command curl
-    check_command jq
-    ensure_directory "$APP_DIR"
-    
-    # Get current and latest version information
-    local current_version
-    current_version=$(get_current_version)
-    display_installation_info "$current_version"
-    
-    local version_info latest_version download_url
-    version_info=$(get_latest_version_info)
-    latest_version="${version_info%|*}"
-    download_url="${version_info#*|}"
-    
-    # Check if update is needed
-    check_if_update_needed "$current_version" "$latest_version"
-    info_message "New version available: $latest_version"
-    
-    # Download and install new version
-    local new_appimage
-    new_appimage=$(download_cursor "$latest_version" "$download_url")
-    cleanup_old_version "$current_version"
-    success_message "Cursor $latest_version has been successfully downloaded to $new_appimage"
-    
-    # Setup desktop integration
-    install_icon
-    create_desktop_entry "$new_appimage" "$latest_version"
-    
-    # Display completion message
-    display_completion_message "$latest_version" "$new_appimage"
 }
 
 # Run the main function
