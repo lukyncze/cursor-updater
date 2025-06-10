@@ -23,12 +23,27 @@ readonly ICON_REGISTRY_URL="https://registry.npmmirror.com/@lobehub/icons-static
 readonly USER_AGENT="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
 main() {
-    # Check prerequisites
+    checkPrerequisites
+
+    local version_info
+    version_info=$(checkVersions)
+
+    local latest_version download_url new_appimage
+    latest_version="${version_info%|*}"
+    download_url="${version_info#*|}"
+    new_appimage=$(downloadAndInstall "$latest_version" "$download_url")
+    
+    setupDesktopIntegration "$new_appimage" "$latest_version"
+    display_completion_message "$latest_version" "$new_appimage"
+}
+
+checkPrerequisites() {
     check_command curl
     check_command jq
     ensure_directory "$APP_DIR"
-    
-    # Get current and latest version information
+}
+
+checkVersions() {
     local current_version
     current_version=$(get_current_version)
     display_installation_info "$current_version"
@@ -38,22 +53,32 @@ main() {
     latest_version="${version_info%|*}"
     download_url="${version_info#*|}"
     
-    # Check if update is needed
     check_if_update_needed "$current_version" "$latest_version"
     info_message "New version available: $latest_version"
     
-    # Download and install new version
+    echo "$latest_version|$download_url"
+}
+
+downloadAndInstall() {
+    local latest_version="$1"
+    local download_url="$2"
+    local current_version
+    current_version=$(get_current_version)
+    
     local new_appimage
     new_appimage=$(download_cursor "$latest_version" "$download_url")
     cleanup_old_version "$current_version"
     success_message "Cursor $latest_version has been successfully downloaded to $new_appimage"
     
-    # Setup desktop integration
+    echo "$new_appimage"
+}
+
+setupDesktopIntegration() {
+    local new_appimage="$1"
+    local latest_version="$2"
+    
     install_icon
     create_desktop_entry "$new_appimage" "$latest_version"
-    
-    # Display completion message
-    display_completion_message "$latest_version" "$new_appimage"
 }
 
 # Display functions
