@@ -23,27 +23,27 @@ readonly ICON_REGISTRY_URL="https://registry.npmmirror.com/@lobehub/icons-static
 readonly USER_AGENT="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
 main() {
-    checkPrerequisites
+    check_prerequisites
 
     local version_info
-    version_info=$(checkVersions)
+    version_info=$(check_versions)
 
     local latest_version download_url new_appimage
     latest_version="${version_info%|*}"
     download_url="${version_info#*|}"
-    new_appimage=$(downloadAndInstall "$latest_version" "$download_url")
+    new_appimage=$(download_and_install "$latest_version" "$download_url")
     
-    setupDesktopIntegration "$new_appimage" "$latest_version"
+    setup_desktop_integration "$new_appimage" "$latest_version"
     display_completion_message "$latest_version" "$new_appimage"
 }
 
-checkPrerequisites() {
+check_prerequisites() {
     check_command curl
     check_command jq
     ensure_directory "$APP_DIR"
 }
 
-checkVersions() {
+check_versions() {
     local current_version
     current_version=$(get_current_version)
     display_installation_info "$current_version"
@@ -59,7 +59,7 @@ checkVersions() {
     echo "$latest_version|$download_url"
 }
 
-downloadAndInstall() {
+download_and_install() {
     local latest_version="$1"
     local download_url="$2"
     local current_version
@@ -73,7 +73,7 @@ downloadAndInstall() {
     echo "$new_appimage"
 }
 
-setupDesktopIntegration() {
+setup_desktop_integration() {
     local new_appimage="$1"
     local latest_version="$2"
     
