@@ -81,31 +81,16 @@ setupDesktopIntegration() {
     create_desktop_entry "$new_appimage" "$latest_version"
 }
 
-# Display functions
-error_exit() {
-    echo -e "\e[31mError: $1\e[0m" >&2
-    exit 1
+display_completion_message() {
+    local version="$1"
+    local appimage_path="$2"
+    
+    success_message "Cursor IDE $version installation complete!"
+    success_message "You can now launch Cursor from your application menu or run:"
+    info_message "  $appimage_path"
 }
 
-success_message() {
-    echo -e "\e[32m$1\e[0m" >&2
-}
-
-info_message() {
-    echo -e "\e[34m$1\e[0m" >&2
-}
-
-# Utility functions
-check_command() {
-    command -v "$1" &> /dev/null || error_exit "$1 is required but not installed. Please install it with: sudo apt install $1"
-}
-
-ensure_directory() {
-    local dir="$1"
-    sudo mkdir -p "$dir" || error_exit "Failed to create directory $dir"
-}
-
-# Core business logic functions
+# Supporting functions for main workflow
 get_current_version() {
     local current_appimage
     current_appimage=$(find "$APP_DIR" -name "Cursor-*-x86_64.AppImage" | sort -V | tail -n 1)
@@ -114,6 +99,16 @@ get_current_version() {
         basename "$current_appimage" | sed -E 's/Cursor-(.+)-x86_64.AppImage/\1/'
     else
         echo ""
+    fi
+}
+
+display_installation_info() {
+    local current_version="$1"
+    
+    if [ -n "$current_version" ]; then
+        info_message "Found existing Cursor installation (version $current_version)"
+    else
+        info_message "No existing Cursor installation found"
     fi
 }
 
@@ -127,6 +122,16 @@ get_latest_version_info() {
     download_url=$(echo "$api_response" | jq -r '.downloadUrl') || error_exit "Failed to get download URL from API response"
     
     echo "$latest_version|$download_url"
+}
+
+check_if_update_needed() {
+    local current_version="$1"
+    local latest_version="$2"
+    
+    if [ "$current_version" = "$latest_version" ]; then
+        success_message "Cursor is already up to date (version $current_version)"
+        exit 0
+    fi
 }
 
 download_cursor() {
@@ -192,33 +197,28 @@ EOF
     fi
 }
 
-check_if_update_needed() {
-    local current_version="$1"
-    local latest_version="$2"
-    
-    if [ "$current_version" = "$latest_version" ]; then
-        success_message "Cursor is already up to date (version $current_version)"
-        exit 0
-    fi
+# Display utility functions
+error_exit() {
+    echo -e "\e[31mError: $1\e[0m" >&2
+    exit 1
 }
 
-display_installation_info() {
-    local current_version="$1"
-    
-    if [ -n "$current_version" ]; then
-        info_message "Found existing Cursor installation (version $current_version)"
-    else
-        info_message "No existing Cursor installation found"
-    fi
+success_message() {
+    echo -e "\e[32m$1\e[0m" >&2
 }
 
-display_completion_message() {
-    local version="$1"
-    local appimage_path="$2"
-    
-    success_message "Cursor IDE $version installation complete!"
-    success_message "You can now launch Cursor from your application menu or run:"
-    info_message "  $appimage_path"
+info_message() {
+    echo -e "\e[34m$1\e[0m" >&2
+}
+
+# General utility functions
+check_command() {
+    command -v "$1" &> /dev/null || error_exit "$1 is required but not installed. Please install it with: sudo apt install $1"
+}
+
+ensure_directory() {
+    local dir="$1"
+    sudo mkdir -p "$dir" || error_exit "Failed to create directory $dir"
 }
 
 # Run the main function
