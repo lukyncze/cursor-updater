@@ -49,7 +49,7 @@ check_command curl
 check_command jq
 
 # Create application directory if it doesn't exist
-mkdir -p "$APP_DIR" || error_exit "Failed to create directory $APP_DIR"
+sudo mkdir -p "$APP_DIR" || error_exit "Failed to create directory $APP_DIR"
 
 # Get current Cursor version (if installed)
 current_version=""
@@ -85,17 +85,17 @@ info_message "Downloading Cursor $latest_version..."
 
 # Download the latest version
 new_appimage="$APP_DIR/Cursor-$latest_version-x86_64.AppImage"
-if ! curl -L -A "$USER_AGENT" -o "$new_appimage" "$download_url"; then
+if ! sudo curl -L -A "$USER_AGENT" -o "$new_appimage" "$download_url"; then
     error_exit "Failed to download Cursor"
 fi
 
 # Make the AppImage executable
-chmod +x "$new_appimage" || error_exit "Failed to make AppImage executable"
+sudo chmod +x "$new_appimage" || error_exit "Failed to make AppImage executable"
 
 # Remove the old version if it exists
 if [ -n "$current_appimage" ] && [ -f "$current_appimage" ]; then
     info_message "Removing old version..."
-    rm "$current_appimage" || error_exit "Failed to remove old version"
+    sudo rm "$current_appimage" || error_exit "Failed to remove old version"
 fi
 
 success_message "Cursor $latest_version has been successfully downloaded to $new_appimage"
@@ -122,17 +122,16 @@ success_message "Cursor $latest_version has been successfully downloaded to $new
 
 # Create desktop entry
 info_message "Creating desktop entry..."
-cat << EOF | tee "$DESKTOP_FILE" > /dev/null
+cat << EOF | sudo tee "$DESKTOP_FILE" > /dev/null
 [Desktop Entry]
 Name=Cursor
 Exec="$new_appimage" %F
+Icon=$ICON_PATH
 Terminal=false
 Type=Application
-Icon=$ICON_PATH
 StartupWMClass=Cursor
 X-AppImage-Version=$latest_version
 Comment=AI-first code editor
-MimeType=text/plain;inode/directory;application/x-code-workspace;
 Categories=Development;IDE;TextEditor;
 Keywords=cursor;editor;ide;code;programming;
 EOF
