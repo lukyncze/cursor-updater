@@ -100,40 +100,17 @@ fi
 success_message "Cursor $latest_version has been successfully downloaded to $new_appimage"
 
 # Check for icon and install if needed
-if [ ! -f "$ICON_PATH" ]; then
-    info_message "Installing Cursor icon..."
-    
+if [ ! -f "$ICON_PATH" ]; then    
     # Create icon directory if it doesn't exist
     sudo mkdir -p "$(dirname "$ICON_PATH")" || error_exit "Failed to create icon directory"
     
-    # Get the versioned icon URL from npm registry
-    info_message "Fetching icon URL from registry..."
-    if icon_response=$(curl -s -L -A "$USER_AGENT" "$ICON_REGISTRY_URL" 2>/dev/null); then
-        # The response should contain a redirect to the versioned URL
-        versioned_icon_url=$(curl -s -I -L -A "$USER_AGENT" "$ICON_REGISTRY_URL" | grep -i "^location:" | tail -n1 | cut -d' ' -f2 | tr -d '\r')
-        
-        if [ -n "$versioned_icon_url" ]; then
-            info_message "Downloading Cursor icon from: $versioned_icon_url"
-            if sudo curl -L --silent --fail -A "$USER_AGENT" -o "$ICON_PATH" "$versioned_icon_url"; then
-                success_message "Icon downloaded successfully"
-            else
-                info_message "Versioned URL download failed, trying direct download..."
-                if sudo curl -L --silent --fail -A "$USER_AGENT" -o "$ICON_PATH" "$ICON_REGISTRY_URL"; then
-                    success_message "Icon downloaded successfully (direct)"
-                else
-                    info_message "Icon download failed, application will use system default icon"
-                fi
-            fi
-        else
-            info_message "Could not get versioned icon URL, trying direct download..."
-            if sudo curl -L --silent --fail -A "$USER_AGENT" -o "$ICON_PATH" "$ICON_REGISTRY_URL"; then
-                success_message "Icon downloaded successfully (direct)"
-            else
-                info_message "Icon download failed, application will use system default icon"
-            fi
-        fi
+    # Download icon from npm registry (automatically resolves to latest version)
+    info_message "Downloading Cursor icon from registry..."
+
+    if sudo curl -L --silent --fail -A "$USER_AGENT" -o "$ICON_PATH" "$ICON_REGISTRY_URL"; then
+        success_message "Icon downloaded successfully"
     else
-        info_message "Icon registry unavailable, application will use system default icon"
+        info_message "Icon download failed, application will use system default icon"
     fi
 fi
 
