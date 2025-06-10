@@ -25,12 +25,22 @@ readonly USER_AGENT="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, 
 main() {
     check_prerequisites
 
+    local current_version latest_version download_url
+    current_version=$(get_current_version)
+    display_installation_info "$current_version"
+    
     local version_info
-    version_info=$(check_versions)
-
-    local latest_version download_url new_appimage
+    version_info=$(get_latest_version_info)
     latest_version="${version_info%|*}"
     download_url="${version_info#*|}"
+    
+    if check_if_update_needed "$current_version" "$latest_version"; then
+        exit 0
+    fi
+    
+    info_message "New version available: $latest_version"
+    
+    local new_appimage
     new_appimage=$(download_and_install "$latest_version" "$download_url")
     
     setup_desktop_integration "$new_appimage" "$latest_version"
@@ -43,21 +53,7 @@ check_prerequisites() {
     ensure_directory "$APP_DIR"
 }
 
-check_versions() {
-    local current_version
-    current_version=$(get_current_version)
-    display_installation_info "$current_version"
-    
-    local version_info latest_version download_url
-    version_info=$(get_latest_version_info)
-    latest_version="${version_info%|*}"
-    download_url="${version_info#*|}"
-    
-    check_if_update_needed "$current_version" "$latest_version"
-    info_message "New version available: $latest_version"
-    
-    echo "$latest_version|$download_url"
-}
+
 
 download_and_install() {
     local latest_version="$1"
@@ -130,7 +126,9 @@ check_if_update_needed() {
     
     if [ "$current_version" = "$latest_version" ]; then
         success_message "Cursor is already up to date (version $current_version)"
-        exit 0
+        return 0  # Return true (no update needed)
+    else
+        return 1  # Return false (update needed)
     fi
 }
 
