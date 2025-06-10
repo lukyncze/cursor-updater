@@ -149,12 +149,14 @@ download_cursor() {
 cleanup_old_version() {
     local old_cursor_version="$1"
     
-    if [ -n "$old_cursor_version" ]; then
-        local old_appimage="$APP_DIR/Cursor-$old_cursor_version-x86_64.AppImage"
-        if [ -f "$old_appimage" ]; then
-            info_message "Removing old version..."
-            sudo rm "$old_appimage" || error_exit "Failed to remove old version"
-        fi
+    if [ -z "$old_cursor_version" ]; then
+        return 0
+    fi
+    
+    local old_appimage="$APP_DIR/Cursor-$old_cursor_version-x86_64.AppImage"
+    if [ -f "$old_appimage" ]; then
+        info_message "Removing old version..."
+        sudo rm "$old_appimage" || error_exit "Failed to remove old version"
     fi
 }
 
