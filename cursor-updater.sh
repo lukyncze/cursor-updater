@@ -16,10 +16,10 @@ set -e
 
 # Configuration variables
 readonly APP_DIR="/opt/cursor"
-readonly ICON_PATH="/opt/cursor/cursor.svg"
+readonly ICON_PATH="/opt/cursor/icon.jpeg"
 readonly DESKTOP_FILE="/usr/share/applications/cursor.desktop"
 readonly API_URL="https://www.cursor.com/api/download?platform=linux-x64&releaseTrack=stable"
-readonly ICON_REGISTRY_URL="https://registry.npmmirror.com/@lobehub/icons-static-svg/latest/files/icons/cursor.svg"
+readonly ICON_REGISTRY_URL="https://cdn.brandfetch.io/ideKwS9dxx/w/400/h/400/theme/dark/icon.jpeg?c=1dxbfHSJFAPEGdCLU4o5B"
 readonly USER_AGENT="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
 main() {
